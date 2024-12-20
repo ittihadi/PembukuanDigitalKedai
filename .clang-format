@@ -1,0 +1,17 @@
+---
+BasedOnStyle: Google
+AllowShortCaseLabelsOnASingleLine: true
+AlignConsecutiveDeclarations: true
+AllowShortFunctionsOnASingleLine: All
+AlignTrailingComments: true
+AlwaysBreakAfterReturnType: None
+PenaltyReturnTypeOnItsOwnLine: 9999
+PointerAlignment: Right
+SortIncludes: true
+IndentWidth: 4
+ColumnLimit: 0
+BreakBeforeBraces: Allman
+SpacesBeforeTrailingComments: 5
+AlignAfterOpenBracket: true
+AlignConsecutiveAssignments: true
+AlignConsecutiveMacros : true

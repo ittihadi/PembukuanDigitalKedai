@@ -398,6 +398,9 @@ void catatKeluaran(KoleksiJenis koleksi)
     printf("[ 0] Lainnya\n");
     for (int i = 0; i < koleksi.jumlah_pengeluaran; i++)
     {
+        // Tunjukkan semua jenis pengeluaran yang ada
+        // karena jenis pengeluaran biasanya tidak
+        // terlalu banyak
         printf("[ %d] %s\n", i + 1, koleksi.pengeluaran[i].nama);
     }
 
@@ -411,6 +414,7 @@ void catatKeluaran(KoleksiJenis koleksi)
         return;
     }
 
+    // Cari data transaksi dari database
     templat_transaksi = cariJenis(koleksi.pengeluaran, koleksi.jumlah_pengeluaran, id_pengeluaran);
     if (templat_transaksi != NULL || id_pengeluaran == 0)
     {
@@ -567,6 +571,7 @@ void lihatSimpulan(KoleksiJenis koleksi)
     for (int i = 0; i < koleksi.jumlah_pengeluaran; i++)
         total_pengeluaran += koleksi_pengeluaran[i].harga_kumulatif;
 
+    // Urutkan entri-entri berdasarkan frekuensi dan jumlah
     printf("Mengurutkan...\n");
     sortirEntri(koleksi_pemasukan, koleksi.jumlah_pemasukan, 0);
     sortirEntri(koleksi_pemasukan2, koleksi.jumlah_pemasukan, 1);
@@ -808,6 +813,7 @@ int main()
                 break;
             case 4:
                 editDatabase(&koleksi_jenis);
+                simpanDatabase(koleksi_jenis);
                 break;
             case 5:
                 printf("Keluar dari program\n");
@@ -819,7 +825,8 @@ int main()
         }
     }
 
-    simpanDatabase(koleksi_jenis);
+    free(koleksi_jenis.pemasukan);
+    free(koleksi_jenis.pengeluaran);
 
     return 0;
 }

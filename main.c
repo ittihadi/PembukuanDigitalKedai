@@ -44,6 +44,7 @@ typedef struct
 // Alokasikan string dinamis dari buffer
 void alokasiBuffer(char **target, char *buffer)
 {
+    // Bebaskan memori sebelumnya jika sudah ada
     if (*target != NULL)
         free(*target);
 
@@ -99,13 +100,15 @@ int masukkanKonfirmasi(int nilai_default)
     return hasil;
 }
 
-// Ambil masukan dalam bentuk string dari pengguna dan kembalikan pointer
-// ke string dinamis
+// Ambil masukan dalam bentuk string dari pengguna dan masukkan ke
+// pointer string yang diberikan
 void masukkanStringDinamis(char **tujuan, char *nilai_default)
 {
     int  perlu_ambil = 1;
     char buffer[128] = {0};
 
+    // Pastikan pengguna memberi string tidak kosong
+    // kecuali jika nilai_default ada
     while (perlu_ambil)
     {
         fgets(buffer, sizeof(buffer), stdin);
@@ -123,6 +126,7 @@ void masukkanStringDinamis(char **tujuan, char *nilai_default)
             perlu_ambil = 0;
     }
 
+    // Alokasikan isian pengguna ke pointer
     alokasiBuffer(tujuan, buffer);
 }
 
@@ -143,6 +147,8 @@ FILE *bukaFileCatatan()
 {
     FILE *hasil = NULL;
 
+    // Nama file sama dengan tahun dan bulan sekarang, agar lebih gampang untuk
+    // disimpulkan nanti
     time_t     w    = time(NULL);
     struct tm *skrg = localtime(&w);
 
@@ -155,14 +161,49 @@ FILE *bukaFileCatatan()
     // Pastikan folder tujuan ada
     mkdir("catatan", 0755);
 
+    // Buka dalam mode "append"
     hasil = fopen(lokasi_file, "a");
 
     return hasil;
 }
 
+// Sortir koleksi entri transaksi berdasarkan frekuensi/harga
+void sortirEntri(EntriTransaksi *koleksi, int jumlah_koleksi, int sortir_harga)
+{
+    // Urutkan koleksi berdasarkan (sortir harga = 0) frekuensi/(sortir harga = 1) harga
+    // dari nilai terbesar hingga terkecil
+    // Gunakan "selection sort"
+
+    int maks      = 0;
+    int idks_maks = 0;
+
+    EntriTransaksi smntr;
+    for (int i = 0; i < jumlah_koleksi; i++)
+    {
+        maks      = 0;
+        idks_maks = i;
+        for (int j = i; j < jumlah_koleksi; j++)
+        {
+            if (!sortir_harga && koleksi[j].frekuensi > maks)
+            {
+                maks      = koleksi[j].frekuensi;
+                idks_maks = j;
+            }
+            else if (sortir_harga && koleksi[j].harga_kumulatif > maks)
+            {
+                maks      = koleksi[j].harga_kumulatif;
+                idks_maks = j;
+            }
+        }
+        smntr              = koleksi[i];
+        koleksi[i]         = koleksi[idks_maks];
+        koleksi[idks_maks] = smntr;
+    }
+}
+
 // --- Fungsi Utama --- //
 
-// Muat tipe-tipe pemasukan dan pengeluaran usaha dari file database
+// Muat tipe-tipe pendapatan dan pengeluaran usaha dari file database
 void muatDatabase(KoleksiJenis *koleksi)
 {
     // Lokasi file relatif ke program adalah
@@ -270,7 +311,7 @@ void simpanDatabase(KoleksiJenis koleksi)
     }
 }
 
-// Menu mencatat pemasukan baru
+// Menu mencatat pendapatan baru
 void catatMasukan(KoleksiJenis koleksi)
 {
     int id_produk     = 0;
@@ -284,7 +325,7 @@ void catatMasukan(KoleksiJenis koleksi)
 
     do
     {
-        printf("--- Catat Pemasukan ---\n");
+        printf("--- Catat Pendapatan ---\n");
         printf("Masukkan ID produk\n");
         printf("[-1] Batal\n");
         printf("ID: ");
@@ -299,16 +340,34 @@ void catatMasukan(KoleksiJenis koleksi)
         templat_transaksi = cariJenis(koleksi.pemasukan, koleksi.jumlah_pemasukan, id_produk);
         if (templat_transaksi != NULL)
         {
+            printf("Mencatat transaksi untuk: %s\n", templat_transaksi->nama);
+            printf("Masukkan jumlah produk dalam transaksi (kosongkan untuk 1): ");
+            jumlah_produk = masukkanAngka(1, 0);
+            if (jumlah_produk <= 0)
+            {
+                printf("Batal catat\n");
+                return;
+            }
             printf("Masukkan harga satuan produk (kosongkan untuk %d): ",
                    templat_transaksi->harga_dasar);
             harga_produk = masukkanAngka(templat_transaksi->harga_dasar, 0);
-            printf("Masukkan jumlah produk dalam transaksi (kosongkan untuk 1): ");
-            jumlah_produk = masukkanAngka(1, 0);
+            if (harga_produk <= 0)
+            {
+                printf("Batal catat\n");
+                return;
+            }
             printf("Masukkan diskon (kosongkan untuk 0): ");
             diskon = masukkanAngka(0, 0);
+            if (diskon < 0)
+            {
+                printf("Batal catat\n");
+                return;
+            }
 
             FILE *file_cttn = bukaFileCatatan();
-            // + (pemasukan), id, harga, jumlah, diskon
+
+            // format:
+            // + (pendapatan), id, harga, jumlah, diskon
             fprintf(file_cttn, "+;;%d;;%d;;%d;;%d\n", id_produk, harga_produk, jumlah_produk, diskon);
             fclose(file_cttn);
         }
@@ -317,11 +376,12 @@ void catatMasukan(KoleksiJenis koleksi)
             printf("Produk dengan ID %d tidak ditemukan\n", id_produk);
         }
 
-        printf("Berhasil mencatat pemasukan\n");
+        printf("Berhasil mencatat pendapatan\n");
         printf("Masukkan lagi (y/T): ");
         masukkan_lagi = masukkanKonfirmasi(0);
 
     } while (masukkan_lagi);
+    printf("------------------------\n");
 }
 
 // Menu mencatat pengeluaran baru
@@ -355,7 +415,10 @@ void catatKeluaran(KoleksiJenis koleksi)
     if (templat_transaksi != NULL || id_pengeluaran == 0)
     {
         if (id_pengeluaran == 0)
+        {
+            printf("Masukkan nama pengeluaran: ");
             masukkanStringDinamis(&nama_pengeluaran, NULL);
+        }
         else
             alokasiBuffer(&nama_pengeluaran, templat_transaksi->nama);
 
@@ -363,6 +426,8 @@ void catatKeluaran(KoleksiJenis koleksi)
         jumlah_pengeluaran = masukkanAngka(0, 1);
 
         FILE *file_pengeluaran = bukaFileCatatan();
+
+        // format:
         // - (pengeluaran), id, harga, nama (hanya jika custom)
         fprintf(file_pengeluaran, "-;;%d;;%d", id_pengeluaran, jumlah_pengeluaran);
         if (id_pengeluaran == 0)
@@ -379,6 +444,7 @@ void catatKeluaran(KoleksiJenis koleksi)
     {
         printf("Pengeluaran tipe %d tidak ditemukan\n", id_pengeluaran);
     }
+    printf("-------------------------\n");
 }
 
 // Hitung dan tampilkan data tentang: total pemasukan, total pengeluaran,
@@ -386,6 +452,7 @@ void catatKeluaran(KoleksiJenis koleksi)
 // dan pengeluaran terurut dari terbanyak ke tersedikit
 void lihatSimpulan(KoleksiJenis koleksi)
 {
+    // Deklarasi semua variabel yang ingin digunakan
     int  bulan           = 0;
     int  tahun           = 0;
     int  jumlah_parse    = 0;
@@ -393,12 +460,14 @@ void lihatSimpulan(KoleksiJenis koleksi)
     char lokasi_file[64] = {0};
 
     EntriTransaksi *koleksi_pemasukan   = NULL;
+    EntriTransaksi *koleksi_pemasukan2  = NULL;
     EntriTransaksi *koleksi_pengeluaran = NULL;
 
     char tipe_transaksi;
 
-    int total_pemasukan   = 0;
-    int total_pengeluaran = 0;
+    int             total_pemasukan   = 0;
+    int             total_pengeluaran = 0;
+    JenisTransaksi *templat_transaksi = NULL;
 
     FILE *file_catatan = NULL;
 
@@ -431,10 +500,14 @@ void lihatSimpulan(KoleksiJenis koleksi)
 
     // Susun penghitung dengan tipe-tipe yang ada
     koleksi_pemasukan   = calloc(koleksi.jumlah_pemasukan, sizeof(EntriTransaksi));
+    koleksi_pemasukan2  = calloc(koleksi.jumlah_pemasukan, sizeof(EntriTransaksi));
     koleksi_pengeluaran = calloc(koleksi.jumlah_pengeluaran, sizeof(EntriTransaksi));
 
     for (int i = 0; i < koleksi.jumlah_pemasukan; i++)
-        koleksi_pemasukan[i].id = koleksi.pemasukan[i].id;
+    {
+        koleksi_pemasukan[i].id  = koleksi.pemasukan[i].id;
+        koleksi_pemasukan2[i].id = koleksi.pemasukan[i].id;
+    }
 
     for (int i = 0; i < koleksi.jumlah_pengeluaran; i++)
         koleksi_pengeluaran[i].id = koleksi.pengeluaran[i].id;
@@ -444,48 +517,49 @@ void lihatSimpulan(KoleksiJenis koleksi)
     printf("Membaca file...\n");
     while (fscanf(file_catatan, "%c;;", &tipe_transaksi) != EOF)
     {
-        EntriTransaksi *transaksi = NULL;
-
         int id            = 0;
         int harga_dasar   = 0;
         int jumlah_barang = 0;
         int diskon        = 0;
 
-        // + (pemasukan), id, harga, jumlah, diskon
+        // + (pendapatan), id, harga, jumlah, diskon
         if (tipe_transaksi == '+')
         {
             fscanf(file_catatan, "%d;;%d;;%d;;%d\n", &id, &harga_dasar, &jumlah_barang, &diskon);
             for (int i = 0; i < koleksi.jumlah_pemasukan; i++)
+            {
                 if (koleksi_pemasukan[i].id == id)
                 {
-                    transaksi = &koleksi_pemasukan[i];
+                    koleksi_pemasukan[i].frekuensi += jumlah_barang;
+                    koleksi_pemasukan[i].harga_kumulatif += harga_dasar * jumlah_barang - diskon;
+
+                    koleksi_pemasukan2[i].frekuensi += jumlah_barang;
+                    koleksi_pemasukan2[i].harga_kumulatif += harga_dasar * jumlah_barang - diskon;
                     break;
                 }
-
-            transaksi->frekuensi += jumlah_barang;
-            transaksi->harga_kumulatif += harga_dasar * jumlah_barang - diskon;
+            }
         }
-        if (tipe_transaksi == '-')
+        else if (tipe_transaksi == '-')
         {
             // - (pengeluaran), id, harga, nama (hanya jika custom)
             fscanf(file_catatan, "%d;;%d", &id, &harga_dasar);
-            if (id == 0)
+            if (id == 0)     // Nama tidak perlu disimpan
                 fscanf(file_catatan, ";;%*[^\n]");
             fscanf(file_catatan, "\n");
 
             for (int i = 0; i < koleksi.jumlah_pengeluaran; i++)
+            {
                 if (koleksi_pengeluaran[i].id == id)
                 {
-                    transaksi = &koleksi_pengeluaran[i];
+                    koleksi_pengeluaran[i].frekuensi += 1;
+                    koleksi_pengeluaran[i].harga_kumulatif += harga_dasar;
                     break;
                 }
-
-            transaksi->frekuensi += 1;
-            transaksi->harga_kumulatif += harga_dasar;
+            }
         }
     }
 
-    // Hitung total pemasukan dan pengeluaran dalam bulan
+    // Hitung total pendapatan dan pengeluaran dalam bulan
     printf("Menghitung total...\n");
     for (int i = 0; i < koleksi.jumlah_pemasukan; i++)
         total_pemasukan += koleksi_pemasukan[i].harga_kumulatif;
@@ -494,131 +568,62 @@ void lihatSimpulan(KoleksiJenis koleksi)
         total_pengeluaran += koleksi_pengeluaran[i].harga_kumulatif;
 
     printf("Mengurutkan...\n");
-    {
-        // Urutkan pemasukan berdasarkan frekuensi dari tertinggi ke terrendah
-        // Gunakan "selection sort"
+    sortirEntri(koleksi_pemasukan, koleksi.jumlah_pemasukan, 0);
+    sortirEntri(koleksi_pemasukan2, koleksi.jumlah_pemasukan, 1);
+    sortirEntri(koleksi_pengeluaran, koleksi.jumlah_pengeluaran, 1);
 
-        int frek_max   = 0;
-        int indeks_max = 0;
-
-        EntriTransaksi smntr;
-        for (int i = 0; i < koleksi.jumlah_pemasukan; i++)
-        {
-            frek_max   = 0;
-            indeks_max = i;
-            for (int j = i; j < koleksi.jumlah_pemasukan; j++)
-            {
-                if (koleksi_pemasukan[j].frekuensi > frek_max)
-                {
-                    frek_max   = koleksi_pemasukan[i].frekuensi;
-                    indeks_max = j;
-                }
-            }
-            smntr                         = koleksi_pemasukan[i];
-            koleksi_pemasukan[i]          = koleksi_pemasukan[indeks_max];
-            koleksi_pemasukan[indeks_max] = smntr;
-        }
-    }
-
-    {
-        // Urutkan pengeluaran berdasarkan jumlah pengeluaran dari tertinggi ke terrendah
-        // Gunakan "selection sort"
-
-        int max      = 0;
-        int idks_max = 0;
-
-        EntriTransaksi smntr;
-        for (int i = 0; i < koleksi.jumlah_pengeluaran; i++)
-        {
-            max      = 0;
-            idks_max = i;
-            for (int j = i; j < koleksi.jumlah_pengeluaran; j++)
-            {
-                if (koleksi_pengeluaran[j].harga_kumulatif > max)
-                {
-                    max      = koleksi_pengeluaran[i].harga_kumulatif;
-                    idks_max = j;
-                }
-            }
-            smntr                         = koleksi_pengeluaran[i];
-            koleksi_pengeluaran[i]        = koleksi_pengeluaran[idks_max];
-            koleksi_pengeluaran[idks_max] = smntr;
-        }
-    }
-
-    JenisTransaksi *data_transaksi = NULL;
-
-    printf("--- Hasil Rangkuman ---\n");
-    printf("Total Masukan    : %d\n", total_pemasukan);
+    printf("----- Hasil Rangkuman -----\n");
+    printf("Total Pendapatan : %d\n", total_pemasukan);
     printf("Total Pengeluaran: %d\n", total_pengeluaran);
-    printf("Total Pendapatan : %d\n", total_pemasukan - total_pengeluaran);
-    printf("Pendapatan Terurut Berdasarkan Frekuensi Pembelian:\n");
-    printf("ID    Frekuensi      Nama\n");
+    printf("Total Keuntungan : %d\n", total_pemasukan - total_pengeluaran);
+    printf("- Pendapatan Berdasarkan Frekuensi Pembelian:\n");
+    printf("ID   [Frekuensi]     Jumlah         Nama\n");
     for (int i = 0; i < koleksi.jumlah_pemasukan; i++)
     {
-        data_transaksi = cariJenis(koleksi.pemasukan, koleksi.jumlah_pemasukan, koleksi_pemasukan[i].id);
-        printf("%-5d %-14d %-s\n",
-               koleksi_pemasukan[i].id,
-               koleksi_pemasukan[i].frekuensi,
-               data_transaksi->nama);
-    }
-    printf("Pendapatan Terurut Berdasarkan Jumlah:\n");
-
-    {
-        // Urutkan pemasukan berdasarkan jumlah dari tertinggi ke terrendah
-        // Gunakan "selection sort"
-
-        int maks      = 0;
-        int idks_maks = 0;
-
-        EntriTransaksi smntr;
-        for (int i = 0; i < koleksi.jumlah_pemasukan; i++)
-        {
-            maks      = 0;
-            idks_maks = i;
-            for (int j = i; j < koleksi.jumlah_pemasukan; j++)
-            {
-                if (koleksi_pemasukan[j].harga_kumulatif > maks)
-                {
-                    maks      = koleksi_pemasukan[i].harga_kumulatif;
-                    idks_maks = j;
-                }
-            }
-            smntr                        = koleksi_pemasukan[i];
-            koleksi_pemasukan[i]         = koleksi_pemasukan[idks_maks];
-            koleksi_pemasukan[idks_maks] = smntr;
-        }
-    }
-
-    printf("ID    Jumlah         Nama\n");
-    for (int i = 0; i < koleksi.jumlah_pemasukan; i++)
-    {
-        data_transaksi = cariJenis(
+        templat_transaksi = cariJenis(
             koleksi.pemasukan,
             koleksi.jumlah_pemasukan,
             koleksi_pemasukan[i].id);
-        printf("%-5d %-14d %-s\n",
+        printf("%-5d %-14d %-14d %-s\n",
                koleksi_pemasukan[i].id,
+               koleksi_pemasukan[i].frekuensi,
                koleksi_pemasukan[i].harga_kumulatif,
-               data_transaksi->nama);
+               templat_transaksi->nama);
     }
-
-    printf("Pengeluaran Terurut Berdasarkan Jumlah:\n");
-    printf("ID    Jumlah         Nama\n");
+    printf("\n");
+    printf("- Pendapatan Berdasarkan Jumlah:\n");
+    printf("ID    Frekuensi     [Jumlah]        Nama\n");
+    for (int i = 0; i < koleksi.jumlah_pemasukan; i++)
+    {
+        templat_transaksi = cariJenis(
+            koleksi.pemasukan,
+            koleksi.jumlah_pemasukan,
+            koleksi_pemasukan2[i].id);
+        printf("%-5d %-14d %-14d %-s\n",
+               koleksi_pemasukan2[i].id,
+               koleksi_pemasukan2[i].frekuensi,
+               koleksi_pemasukan2[i].harga_kumulatif,
+               templat_transaksi->nama);
+    }
+    printf("\n");
+    printf("- Pengeluaran Berdasarkan Jumlah:\n");
+    printf("ID    Frekuensi     [Jumlah]        Nama\n");
     for (int i = 0; i < koleksi.jumlah_pengeluaran; i++)
     {
-        data_transaksi = cariJenis(
+        templat_transaksi = cariJenis(
             koleksi.pengeluaran,
             koleksi.jumlah_pengeluaran,
             koleksi_pengeluaran[i].id);
-        printf("%-5d %-14d %-s\n",
+        printf("%-5d %-14d %-14d %-s\n",
                koleksi_pengeluaran[i].id,
+               koleksi_pengeluaran[i].frekuensi,
                koleksi_pengeluaran[i].harga_kumulatif,
-               data_transaksi->nama);
+               templat_transaksi->nama);
     }
-    printf("-----------------------\n");
+    printf("---------------------------\n");
 
     free(koleksi_pemasukan);
+    free(koleksi_pemasukan2);
     free(koleksi_pengeluaran);
     fclose(file_catatan);
 }
@@ -632,10 +637,11 @@ void editDatabase(KoleksiJenis *koleksi)
     JenisTransaksi *elemen_tujuan = NULL;
     JenisTransaksi *smtr          = NULL;
 
-    printf("--- Edit database jenis pemasukan/pengeluaran ---\n");
-    printf("[1] Edit pemasukan\n");
+    printf("--- Edit database jenis pendapatan/pengeluaran ---\n");
+    printf("[1] Edit pendapatan\n");
     printf("[2] Edit pengeluaran\n");
     printf("[-1] Batal\n");
+    printf("-------------------------------------------------\n");
     printf("Pilih jenis yang ingin diedit: ");
     pilihan = masukkanAngka(0, 1);
 
@@ -643,7 +649,8 @@ void editDatabase(KoleksiJenis *koleksi)
     {
         case 1:
             printf("[-1] Batal\n");
-            printf("Masukkan ID Produk: ");
+            printf("-------------------------------------------------\n");
+            printf("Masukkan ID produk lama atau baru: ");
             id = masukkanAngka(0, 1);
 
             if (id == -1)
@@ -699,7 +706,8 @@ void editDatabase(KoleksiJenis *koleksi)
             break;
         case 2:
             printf("[-1] Batal\n");
-            printf("Masukkan ID Tipe Pengeluaran: ");
+            printf("-------------------------------------------------\n");
+            printf("Masukkan ID tipe pengeluaran lama atau baru: ");
             id = masukkanAngka(0, 1);
 
             if (id == 0)
@@ -757,6 +765,7 @@ void editDatabase(KoleksiJenis *koleksi)
             printf("Pilihan tidak valid.\n");
             break;
     }
+    printf("-------------------------------------------------\n");
 }
 
 int main()
@@ -776,11 +785,11 @@ int main()
         printf("\n");
 
         printf("--- Menu Utama ---\n");
-        printf("[1] Catat Masukkan\n");
-        printf("[2] Catat Keluaran\n");
-        printf("[3] Lihat Simpulan\n");
+        printf("[1] Catat Pendapatan\n");
+        printf("[2] Catat Pengeluaran\n");
+        printf("[3] Lihat Kesimpulan\n");
         printf("[4] Edit Database\n");
-        printf("[5] Keluar program\n");
+        printf("[5] Keluar Program\n");
         printf("------------------\n");
         printf("Pilih aksi: ");
 

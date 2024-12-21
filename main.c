@@ -491,9 +491,10 @@ void lihatSimpulan(KoleksiJenis koleksi)
     }
 
     // Susun penghitung dengan tipe-tipe yang ada
-    koleksi_pemasukan   = calloc(koleksi.jumlah_pemasukan, sizeof(EntriTransaksi));
-    koleksi_pemasukan2  = calloc(koleksi.jumlah_pemasukan, sizeof(EntriTransaksi));
-    koleksi_pengeluaran = calloc(koleksi.jumlah_pengeluaran, sizeof(EntriTransaksi));
+    koleksi_pemasukan  = calloc(koleksi.jumlah_pemasukan, sizeof(EntriTransaksi));
+    koleksi_pemasukan2 = calloc(koleksi.jumlah_pemasukan, sizeof(EntriTransaksi));
+    // +1 untuk kategori "lainnya"
+    koleksi_pengeluaran = calloc(koleksi.jumlah_pengeluaran + 1, sizeof(EntriTransaksi));
 
     for (int i = 0; i < koleksi.jumlah_pemasukan; i++)
     {
@@ -503,6 +504,7 @@ void lihatSimpulan(KoleksiJenis koleksi)
 
     for (int i = 0; i < koleksi.jumlah_pengeluaran; i++)
         koleksi_pengeluaran[i].id = koleksi.pengeluaran[i].id;
+    koleksi_pengeluaran[koleksi.jumlah_pengeluaran].id = 0;
 
     // Baca file sampai akhir dan hitung frekuensi dan harga
     // kumulatif tiap jenis barang/pengeluaran
@@ -539,7 +541,7 @@ void lihatSimpulan(KoleksiJenis koleksi)
                 fscanf(file_catatan, ";;%*[^\n]");
             fscanf(file_catatan, "\n");
 
-            for (int i = 0; i < koleksi.jumlah_pengeluaran; i++)
+            for (int i = 0; i < koleksi.jumlah_pengeluaran + 1; i++)
             {
                 if (koleksi_pengeluaran[i].id == id)
                 {
@@ -556,15 +558,16 @@ void lihatSimpulan(KoleksiJenis koleksi)
     for (int i = 0; i < koleksi.jumlah_pemasukan; i++)
         total_pemasukan += koleksi_pemasukan[i].harga_kumulatif;
 
-    for (int i = 0; i < koleksi.jumlah_pengeluaran; i++)
+    for (int i = 0; i < koleksi.jumlah_pengeluaran + 1; i++)
         total_pengeluaran += koleksi_pengeluaran[i].harga_kumulatif;
 
     // Urutkan entri-entri berdasarkan frekuensi dan jumlah
     printf("Mengurutkan...\n");
     sortirEntri(koleksi_pemasukan, koleksi.jumlah_pemasukan, 0);
     sortirEntri(koleksi_pemasukan2, koleksi.jumlah_pemasukan, 1);
-    sortirEntri(koleksi_pengeluaran, koleksi.jumlah_pengeluaran, 1);
+    sortirEntri(koleksi_pengeluaran, koleksi.jumlah_pengeluaran + 1, 1);
 
+    // Cetak semua hasil data
     printf("----- Hasil Rangkuman -----\n");
     printf("Total Pendapatan : %d\n", total_pemasukan);
     printf("Total Pengeluaran: %d\n", total_pengeluaran);
@@ -601,17 +604,24 @@ void lihatSimpulan(KoleksiJenis koleksi)
     printf("\n");
     printf("- Pengeluaran Berdasarkan Jumlah:\n");
     printf("ID    Frekuensi     [Jumlah]        Nama\n");
-    for (int i = 0; i < koleksi.jumlah_pengeluaran; i++)
+    for (int i = 0; i < koleksi.jumlah_pengeluaran + 1; i++)
     {
         templat_transaksi = cariJenis(
             koleksi.pengeluaran,
             koleksi.jumlah_pengeluaran,
             koleksi_pengeluaran[i].id);
-        printf("%-5d %-14d %-14d %-s\n",
-               koleksi_pengeluaran[i].id,
-               koleksi_pengeluaran[i].frekuensi,
-               koleksi_pengeluaran[i].harga_kumulatif,
-               templat_transaksi->nama);
+        if (templat_transaksi != NULL)
+            printf("%-5d %-14d %-14d %-s\n",
+                   koleksi_pengeluaran[i].id,
+                   koleksi_pengeluaran[i].frekuensi,
+                   koleksi_pengeluaran[i].harga_kumulatif,
+                   templat_transaksi->nama);
+        else
+            printf("%-5d %-14d %-14d %-s\n",
+                   koleksi_pengeluaran[i].id,
+                   koleksi_pengeluaran[i].frekuensi,
+                   koleksi_pengeluaran[i].harga_kumulatif,
+                   "Lainnya");
     }
     printf("---------------------------\n");
 

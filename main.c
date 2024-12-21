@@ -782,11 +782,12 @@ int main()
     int berhenti = 0;
     int pilihan  = 0;
 
+    printf("Pembukuan Digital Kedai\n");
+    printf("\n");
+
     while (berhenti == 0)
     {
-        printf("Pembukuan Digital Kedai\n");
-        printf("\n");
-
+        // Tunjukkan Menu utama
         printf("--- Menu Utama ---\n");
         printf("[1] Catat Pendapatan\n");
         printf("[2] Catat Pengeluaran\n");

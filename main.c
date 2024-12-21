@@ -16,9 +16,9 @@
 // Struct ini digunakan untuk mencatat tipe masukan/keluaran dari kedai
 typedef struct
 {
-    int   id;
-    char *nama;
-    int   harga_dasar;     // Harga hanya digunakan untuk masukan
+    int  id;
+    char nama[128];
+    int  harga_dasar;     // Harga hanya digunakan untuk masukan
 } JenisTransaksi;
 
 // Struct ini memegang semua tipe masukan dan keluaran
@@ -40,17 +40,6 @@ typedef struct
 } EntriTransaksi;
 
 // --- Fungsi Pembantu --- //
-
-// Alokasikan string dinamis dari buffer
-void alokasiBuffer(char **target, char *buffer)
-{
-    // Bebaskan memori sebelumnya jika sudah ada
-    if (*target != NULL)
-        free(*target);
-
-    *target = calloc(strlen(buffer) + 1, sizeof(char));
-    strncpy(*target, buffer, strlen(buffer));
-}
 
 // Bersihkan buffer input pengguna
 void bersihkanInput()
@@ -102,7 +91,7 @@ int masukkanKonfirmasi(int nilai_default)
 
 // Ambil masukan dalam bentuk string dari pengguna dan masukkan ke
 // pointer string yang diberikan
-void masukkanStringDinamis(char **tujuan, char *nilai_default)
+void masukkanString(char tujuan[], char *nilai_default)
 {
     int  perlu_ambil = 1;
     char buffer[128] = {0};
@@ -126,8 +115,8 @@ void masukkanStringDinamis(char **tujuan, char *nilai_default)
             perlu_ambil = 0;
     }
 
-    // Alokasikan isian pengguna ke pointer
-    alokasiBuffer(tujuan, buffer);
+    // Salin buffer ke tujuan
+    strcpy(tujuan, buffer);
 }
 
 // Fungsi untuk mencari jenis dengan id tertentu dari koleksi jenis transaksi
@@ -231,7 +220,7 @@ void muatDatabase(KoleksiJenis *koleksi)
                        &koleksi->pemasukan[i].id,
                        &koleksi->pemasukan[i].harga_dasar,
                        buffer);
-                alokasiBuffer(&koleksi->pemasukan[i].nama, buffer);
+                strcpy(koleksi->pemasukan[i].nama, buffer);
             }
         }
         else
@@ -253,7 +242,7 @@ void muatDatabase(KoleksiJenis *koleksi)
                 fscanf(file_pengeluaran, "%d;;%127[^\n]\n",
                        &koleksi->pengeluaran[i].id,
                        buffer);
-                alokasiBuffer(&koleksi->pengeluaran[i].nama, buffer);
+                strcpy(koleksi->pengeluaran[i].nama, buffer);
             }
         }
         else
@@ -387,9 +376,9 @@ void catatMasukan(KoleksiJenis koleksi)
 // Menu mencatat pengeluaran baru
 void catatKeluaran(KoleksiJenis koleksi)
 {
-    int   id_pengeluaran     = 0;
-    int   jumlah_pengeluaran = 0;
-    char *nama_pengeluaran   = NULL;
+    int  id_pengeluaran        = 0;
+    int  jumlah_pengeluaran    = 0;
+    char nama_pengeluaran[128] = {0};
 
     JenisTransaksi *templat_transaksi;
 
@@ -421,10 +410,10 @@ void catatKeluaran(KoleksiJenis koleksi)
         if (id_pengeluaran == 0)
         {
             printf("Masukkan nama pengeluaran: ");
-            masukkanStringDinamis(&nama_pengeluaran, NULL);
+            masukkanString(nama_pengeluaran, NULL);
         }
         else
-            alokasiBuffer(&nama_pengeluaran, templat_transaksi->nama);
+            strcpy(nama_pengeluaran, templat_transaksi->nama);
 
         printf("Masukkan jumlah pengeluaran: ");
         jumlah_pengeluaran = masukkanAngka(0, 1);
@@ -442,7 +431,6 @@ void catatKeluaran(KoleksiJenis koleksi)
         printf("Berhasil mencatat pengeluaran\n");
 
         fclose(file_pengeluaran);
-        free(nama_pengeluaran);
     }
     else
     {
@@ -685,19 +673,19 @@ void editDatabase(KoleksiJenis *koleksi)
                 elemen_tujuan->id = id;
 
                 elemen_tujuan->harga_dasar = 0;
-                elemen_tujuan->nama        = NULL;
+                elemen_tujuan->nama[0]     = '\0';
+
+                elemen_baru = 1;
             }
 
             // Minta pengguna untuk memasukkan nilai baru nama dan harga produk,
-            elemen_baru = elemen_tujuan->nama == NULL;
-
             // Jika bukan produk baru maka tunjukkan juga nilai sebelumnya
             printf("Masukkan nama baru produk");
             if (!elemen_baru)
                 printf(" (%s)", elemen_tujuan->nama);
             printf(": ");
 
-            masukkanStringDinamis(&elemen_tujuan->nama, elemen_tujuan->nama);
+            masukkanString(elemen_tujuan->nama, elemen_tujuan->nama);
 
             printf("Masukkan harga satuan baru produk");
             if (!elemen_baru)
@@ -746,20 +734,20 @@ void editDatabase(KoleksiJenis *koleksi)
 
                 elemen_tujuan = &koleksi->pengeluaran[koleksi->jumlah_pengeluaran - 1];
 
-                elemen_tujuan->id   = id;
-                elemen_tujuan->nama = NULL;
+                elemen_tujuan->id      = id;
+                elemen_tujuan->nama[0] = '\0';
+
+                elemen_baru = 1;
             }
 
             // Minta pengguna untuk memasukkan nilai baru nama tipe pengeluaran
-            elemen_baru = elemen_tujuan->nama == NULL;
-
             // Jika bukan pengeluaran baru maka tunjukkan juga nilai sebelumnya
             printf("Masukkan nama baru tipe pengeluaran");
             if (!elemen_baru)
                 printf(" (%s)", elemen_tujuan->nama);
             printf(": ");
 
-            masukkanStringDinamis(&elemen_tujuan->nama, elemen_tujuan->nama);
+            masukkanString(elemen_tujuan->nama, elemen_tujuan->nama);
 
             printf("Berhasil mengedit entri\n");
             break;

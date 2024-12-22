@@ -204,8 +204,6 @@ void muatDatabase(KoleksiJenis *koleksi)
     koleksi->jumlah_pemasukan   = 0;
     koleksi->jumlah_pengeluaran = 0;
 
-    char buffer[128] = {0};
-
     file_pemasukan = fopen("data/pemasukan.txt", "r");
     if (file_pemasukan != NULL)
     {
@@ -219,8 +217,7 @@ void muatDatabase(KoleksiJenis *koleksi)
                 fscanf(file_pemasukan, "%d;;%d;;%127[^\n]\n",
                        &koleksi->pemasukan[i].id,
                        &koleksi->pemasukan[i].harga_dasar,
-                       buffer);
-                strcpy(koleksi->pemasukan[i].nama, buffer);
+                       koleksi->pemasukan[i].nama);
             }
         }
         else
@@ -241,8 +238,7 @@ void muatDatabase(KoleksiJenis *koleksi)
             {
                 fscanf(file_pengeluaran, "%d;;%127[^\n]\n",
                        &koleksi->pengeluaran[i].id,
-                       buffer);
-                strcpy(koleksi->pengeluaran[i].nama, buffer);
+                       koleksi->pengeluaran[i].nama);
             }
         }
         else
@@ -359,13 +355,14 @@ void catatMasukan(KoleksiJenis koleksi)
             // + (pendapatan), id, harga, jumlah, diskon
             fprintf(file_cttn, "+;;%d;;%d;;%d;;%d\n", id_produk, harga_produk, jumlah_produk, diskon);
             fclose(file_cttn);
+
+            printf("Berhasil mencatat pendapatan\n");
         }
         else
         {
             printf("Produk dengan ID %d tidak ditemukan\n", id_produk);
         }
 
-        printf("Berhasil mencatat pendapatan\n");
         printf("Masukkan lagi (y/T): ");
         masukkan_lagi = masukkanKonfirmasi(0);
 

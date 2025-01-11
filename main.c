@@ -780,6 +780,7 @@ int main()
     int pilihan  = 0;
 
     printf("Pembukuan Digital Kedai\n");
+    printf("Dikembangkan oleh: Ittihadi Ramadhan (NIM: 24343038)\n");
     printf("\n");
 
     while (berhenti == 0)

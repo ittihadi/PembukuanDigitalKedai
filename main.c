@@ -5,7 +5,7 @@
 #include <time.h>
 
 // Buat alias untuk membuat direktori untuk windows
-// karena fungsinya berbeda dari fungsi linux
+// karena fungsinya berbeda dari fungsi di OS lain
 #ifdef _WIN32
 #include <windows.h>
 #define mkdir(dir, mode) CreateDirectory(dir, NULL)
